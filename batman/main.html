@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cute Webcam Photo Strip App</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background: linear-gradient(to bottom right, #ffccf2, #ff99cc);
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            color: #fff;
+        }
+        video {
+            border-radius: 20px;
+            box-shadow: 0 4px 20px rgba(255, 105, 180, 0.5);
+            width: 80%;
+            max-width: 600px;
+            margin-bottom: 20px;
+            background: #000;
+            transform: scaleX(-1); /* Mirror effect */
+        }
+        button {
+            background-color: #ff6f61;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 10px 20px;
+            margin: 10px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+            font-size: 1.2em;
+        }
+        button:hover {
+            background-color: #ff4f3d;
+            transform: scale(1.05);
+        }
+        .filters {
+            display: flex;
+            overflow-x: auto;
+            margin: 20px 0;
+            padding: 10px;
+            border-radius: 10px;
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+        .filter {
+            margin: 0 10px;
+            cursor: pointer;
+            padding: 8px 15px;
+            border-radius: 8px;
+            border: 1px solid transparent;
+            transition: all 0.3s;
+            background: rgba(255,255,255,0.3);
+            font-weight: 500;
+        }
+        .filter:hover {
+            background: rgba(255,255,255,0.5);
+            transform: scale(1.05);
+        }
+        .photo-strip {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+        }
+        .photo-strip img {
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(255, 105, 180, 0.5);
+            margin: 5px 0;
+            width: 80%;
+            max-width: 600px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🌸 Cute Webcam Selfie App 🌸</h1>
+    <video id="webcam" autoplay playsinline></video>
+    <div id="loader" style="position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:rgba(255,255,255,0.8); padding:10px 20px; border-radius:20px; color:#ff6f61; z-index:100;">
+        Loading camera... ✨
+    </div>
+    <div class="filters" id="filterList">
+        <div class="filter" data-filter="none">Normal</div>
+        <div class="filter" data-filter="grayscale(100%)">Grayscale</div>
+        <div class="filter" data-filter="sepia(100%)">Sepia</div>
+        <div class="filter" data-filter="brightness(1.5)">Brightness Up</div>
+        <div class="filter" data-filter="contrast(1.5)">Contrast Up</div>
+        <div class="filter" data-filter="warm">Warm Tone</div>
+        <div class="filter" data-filter="cool">Cool Tone</div>
+        <div class="filter" data-filter="blur(2px)">Dreamy Blur</div>
+        <div class="filter" data-filter="hue-rotate(90deg)">Pink Tint</div>
+        <div class="filter" data-filter="saturate(2)">Saturated Pop</div>
+        <div class="filter" data-filter="opacity(0.8)">Pastel Overlay</div>
+        <div class="filter" data-filter="drop-shadow(0 0 10px rgba(255, 105, 180, 0.5))">Soft Glow</div>
+    </div>
+    <button id="capture">Take Photo 💖</button>
+    <div id="photoPreview"></div>
+    <button id="download" style="display:none;">Download Photo 🫶</button>
+    <div id="error-message" style="display:none; color:#ff0000; background:#fff; padding:15px; border-radius:10px; text-align:center; max-width:80%; margin:20px auto;">
+        Camera access denied 😢 Please refresh and allow camera access to use this app.
+    </div>
+
+    <script>
+        const video = document.getElementById('webcam');
+        const captureButton = document.getElementById('capture');
+        const photoStrip = document.getElementById('photoStrip');
+        const downloadButton = document.getElementById('download');
+        let currentFilter = 'none';
+
+        function initCamera() {
+            // Access webcam with better mobile support
+            navigator.mediaDevices.getUserMedia({
+                video: {
+                    width: { ideal: 1280, max: 1920 },
+                    height: { ideal: 720, max: 1080 },
+                    facingMode: 'user',
+                    aspectRatio: 16/9
+                }
+            })
+            .then(stream => {
+                video.srcObject = stream;
+                video.play();
+                document.getElementById('loader').style.display = 'none'; // Hide loader when camera is ready
+            })
+            .catch(err => {
+                console.error("Error accessing webcam: ", err);
+                alert("Couldn't access camera. Please make sure you've granted permission and refresh the page");
+                // Show fallback UI
+                document.getElementById('error-message').style.display = 'block';
+            });
+        }
+
+        // Start camera access when page loads
+        window.addEventListener('DOMContentLoaded', () => {
+            alert("Hi beautiful! 🌷 Please allow camera access to create your cute photo strips ✨");
+            initCamera();
+        });
+
+        // Apply selected filter
+        document.querySelectorAll('.filter').forEach(filter => {
+            filter.addEventListener('click', () => {
+                currentFilter = filter.getAttribute('data-filter');
+                const filterMap = {
+                    'warm': 'hue-rotate(20deg) sepia(50%) brightness(1.15) contrast(1.05)',
+                    'cool': 'hue-rotate(-25deg) brightness(1.1) saturate(1.4)',
+                    'none': 'contrast(1.05) brightness(1.05)'
+                };
+                video.style.filter = filterMap[currentFilter] || currentFilter;
+            });
+        });
+
+        // Capture single photo with error handling
+        captureButton.addEventListener('click', async () => {
+            if (!video.srcObject || !video.videoWidth) {
+                alert("Please wait for camera access before taking photos");
+                return;
+            }
+            document.getElementById('photoPreview').innerHTML = '';
+            downloadButton.style.display = 'none';
+
+            // Add countdown
+            for (let i = 3; i > 0; i--) {
+                captureButton.textContent = `Say cheese in ${i}... ✨`;
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+            
+            captureButton.textContent = "📸 Click!";
+            await new Promise(resolve => setTimeout(resolve, 200));
+
+            // Take single photo
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            let appliedFilter = currentFilter === 'warm' ? 'hue-rotate(30deg) sepia(30%) brightness(1.2)' :
+                              currentFilter === 'cool' ? 'hue-rotate(-30deg) brightness(1.1) saturate(1.5)' :
+                              currentFilter === 'none' ? 'contrast(1.1) brightness(1.05)' :
+                              currentFilter;
+            context.filter = appliedFilter;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            const img = document.createElement('img');
+            img.src = canvas.toDataURL('image/jpeg');
+            img.style.border = '5px solid #ff99cc';
+            img.style.maxWidth = '100%';
+            document.getElementById('photoPreview').appendChild(img);
+            
+            downloadButton.style.display = 'block';
+            captureButton.textContent = "Take Another Photo 💖";
+        });
+
+        // Download photo
+        downloadButton.addEventListener('click', () => {
+            const img = document.querySelector('#photoPreview img');
+            if (!img) return;
+            
+            const link = document.createElement('a');
+            link.href = img.src;
+            link.download = 'cute_selfie.jpg';
+            link.click();
+        });
+    </script>
+</body>
+</html>
+
